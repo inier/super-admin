@@ -1,79 +1,23 @@
 import { NonIndexRouteObject, RouteMatch, useLocation, useNavigate, useRoutes } from "react-router-dom"
-import React, {
-    Fragment,
-    JSXElementConstructor,
-    memo,
-    ReactElement,
-    useEffect,
-    useLayoutEffect,
-    useMemo,
-    useRef,
-    useState,
-} from "react"
+import React, { Fragment, JSXElementConstructor, memo, ReactElement, useEffect, useMemo, useRef, useState } from "react"
 import { MenuFoldOutlined, MenuUnfoldOutlined, PoweroffOutlined, SearchOutlined, UserOutlined } from "@ant-design/icons"
 import { isNil, reduce, last, filter, not, isEmpty } from "ramda"
 import { PageConfig, usePageContext } from "@/providers/PageManageProvider"
 import { SuspenseLoading } from "@/components/SuspenseLoading"
 import { Avatar, Breadcrumb, Button, Drawer, Layout as ALayout, Menu, Space, Tabs, TabsProps } from "antd"
 import type { ItemType } from "antd/lib/menu/hooks/useItems"
-import KeepAlive from "keepalive-for-react"
 import { RouteConfig } from "@/router/config"
 import { hasAllAuth, hasAnyAuth } from "@/utils/auth"
 import { primaryColor } from "@/config"
 import { ErrorBoundary } from "@ant-design/pro-components"
 import mergePath from "@/utils/mergePath"
 import SearchBox from "@/layout/components/SearchBox"
+import DndBox, { DraggableNode } from "./components/DndBox"
 
-import { DndProvider, useDrag, useDrop } from "react-dnd"
-import { HTML5Backend } from "react-dnd-html5-backend"
 import useSessionStorageState from "@/hooks/useSessionStorageState"
-
-const type = "DraggableTabNode"
-
-interface DraggableTabPaneProps extends React.HTMLAttributes<HTMLDivElement> {
-    index: React.Key
-    moveNode: (dragIndex: React.Key, hoverIndex: React.Key) => void
-}
-
-const DraggableTabNode = ({ index, children, moveNode }: DraggableTabPaneProps) => {
-    const ref = useRef<HTMLDivElement>(null)
-    const [{ isOver, dropClassName }, drop] = useDrop({
-        accept: type,
-        collect: monitor => {
-            const { index: dragIndex } = monitor.getItem() || {}
-            if (dragIndex === index) {
-                return {}
-            }
-            return {
-                isOver: monitor.isOver(),
-                dropClassName: "dropping",
-            }
-        },
-        drop: (item: { index: React.Key }) => {
-            moveNode(item.index, index)
-        },
-    })
-
-    const [, drag] = useDrag({
-        type,
-        item: { index },
-        collect: monitor => ({
-            isDragging: monitor.isDragging(),
-        }),
-    })
-    drop(drag(ref))
-
-    return (
-        <div ref={ref} className={isOver ? dropClassName : ""}>
-            {children}
-        </div>
-    )
-}
-
-// to prevent re-rendering when user input a new url to navigate
-const MemoizedKeepAlive = memo(KeepAlive, (prev, next) => {
-    return prev.activeName === next.activeName
-})
+import useResize from "./hooks/useResize"
+import KeepAliveView from "./components/KeepAliveView"
+import ThemeBox from "./components/ThemeBox"
 
 function checkAuthPass(route: RouteConfig) {
     if (isNil(route.authority) || isEmpty(route.authority)) {
@@ -237,9 +181,6 @@ interface Props {
 
 function Layout({ route }: Props) {
     console.log("Layout render")
-    const [showSearch, setShowSearch] = useState(false)
-    const eleRef = useRef<ReactElement<any, string | JSXElementConstructor<any>> | null>()
-    const location = useLocation()
     const [order, setOrder] = useSessionStorageState<React.Key[]>("tabs_order", [])
     const { pages, setPages, active, open, close, getKeepAliveRef } = usePageContext()
 
@@ -264,9 +205,9 @@ function Layout({ route }: Props) {
     const renderTabBar: TabsProps["renderTabBar"] = (tabBarProps, DefaultTabBar) => (
         <DefaultTabBar {...tabBarProps}>
             {node => (
-                <DraggableTabNode key={node.key} index={node.key!} moveNode={moveTabNode}>
+                <DraggableNode key={node.key} index={node.key!} moveNode={moveTabNode}>
                     {node}
-                </DraggableTabNode>
+                </DraggableNode>
             )}
         </DefaultTabBar>
     )
@@ -291,6 +232,7 @@ function Layout({ route }: Props) {
     })
 
     const keepAliveRef = getKeepAliveRef()
+    const location = useLocation()
     const navigate = useNavigate()
     const routes = useMemo(() => {
         if (isNil(route.children)) {
@@ -308,7 +250,7 @@ function Layout({ route }: Props) {
 
     // 匹配 当前路径要渲染的路由
     const ele = useRoutes(routes, location)
-
+    const eleRef = useRef<ReactElement<any, string | JSXElementConstructor<any>> | null>()
     const matchRouteObj = useMemo(() => {
         eleRef.current = ele
         return getMatchRouteObj(ele)
@@ -328,30 +270,8 @@ function Layout({ route }: Props) {
         }
     }, [routerPathKey])
 
-    const [collapsed, setCollapsed] = useState(false)
-    const [showSide, setShowSide] = useState(true)
-
-    useLayoutEffect(() => {
-        function onResize() {
-            const width = window.innerWidth
-            if (width < 768) {
-                setCollapsed(true)
-            }
-            if (width > 1400) {
-                setCollapsed(false)
-            }
-            if (width < 660) {
-                setShowSide(false)
-            } else {
-                setShowSide(true)
-            }
-        }
-        onResize()
-        window.addEventListener("resize", onResize)
-        return () => {
-            window.removeEventListener("resize", onResize)
-        }
-    }, [setCollapsed, setShowSide])
+    const [showSearch, setShowSearch] = useState(false)
+    const { showSide, collapsed, setCollapsed } = useResize()
 
     return (
         <Fragment>
@@ -362,34 +282,34 @@ function Layout({ route }: Props) {
                 }}
                 route={route}
             ></SearchBox>
-            {!showSide && (
-                <Drawer
-                    title={"Super Admin"}
-                    placement={"left"}
-                    width={240}
-                    styles={{
-                        body: {
-                            padding: 0,
-                        },
-                    }}
-                    onClose={() => {
-                        setCollapsed(true)
-                    }}
-                    open={!collapsed}
-                >
-                    <Menu
-                        style={{
-                            padding: "10px 10px",
-                        }}
-                        selectedKeys={matchRouteObj?.selectedKeys}
-                        defaultOpenKeys={matchRouteObj?.selectedKeys}
-                        items={items}
-                        mode={"inline"}
-                    />
-                </Drawer>
-            )}
             <ALayout className={"w-full h-screen"}>
                 <ALayout>
+                    {!showSide && (
+                        <Drawer
+                            title={"Super Admin"}
+                            placement={"left"}
+                            width={240}
+                            styles={{
+                                body: {
+                                    padding: 0,
+                                },
+                            }}
+                            onClose={() => {
+                                setCollapsed(true)
+                            }}
+                            open={!collapsed}
+                        >
+                            <Menu
+                                style={{
+                                    padding: "10px 10px",
+                                }}
+                                selectedKeys={matchRouteObj?.selectedKeys}
+                                defaultOpenKeys={matchRouteObj?.selectedKeys}
+                                items={items}
+                                mode={"inline"}
+                            />
+                        </Drawer>
+                    )}
                     {showSide && (
                         <ALayout.Sider
                             style={{
@@ -447,6 +367,7 @@ function Layout({ route }: Props) {
                             </div>
                             <div>
                                 <Space>
+                                    <ThemeBox />
                                     {/*search*/}
 
                                     <Button
@@ -481,7 +402,8 @@ function Layout({ route }: Props) {
                                 </Space>
                             </div>
                         </div>
-                        <DndProvider backend={HTML5Backend}>
+
+                        <DndBox>
                             <Tabs
                                 className="app-tabs"
                                 style={{
@@ -507,7 +429,7 @@ function Layout({ route }: Props) {
                                 items={orderItems}
                                 renderTabBar={renderTabBar}
                             />
-                        </DndProvider>
+                        </DndBox>
 
                         <ALayout.Content
                             className="app-content p-[5px]"
@@ -516,7 +438,7 @@ function Layout({ route }: Props) {
                             }}
                         >
                             <SuspenseLoading>
-                                <MemoizedKeepAlive
+                                <KeepAliveView
                                     errorElement={ErrorBoundary as any}
                                     aliveRef={keepAliveRef}
                                     cache={matchRouteObj?.cache}
@@ -524,7 +446,7 @@ function Layout({ route }: Props) {
                                     maxLen={20}
                                 >
                                     {eleRef.current}
-                                </MemoizedKeepAlive>
+                                </KeepAliveView>
                             </SuspenseLoading>
                         </ALayout.Content>
                     </ALayout>

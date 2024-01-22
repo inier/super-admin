@@ -10,7 +10,7 @@ import {
     useState,
 } from "react"
 import { message } from "antd"
-import useSessionStorageState from "@/hooks/useSessionStorageState.ts"
+import useSessionStorageState from "@/hooks/useSessionStorageState"
 import { KeepAliveRef } from "keepalive-for-react"
 import { NavigateOptions, useLocation, useNavigate } from "react-router-dom"
 

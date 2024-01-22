@@ -35,8 +35,6 @@ export interface RouteConfig {
     searchKeyWords?: string[] // 搜索关键字 用于搜索额外匹配 默认匹配 name 和 meta.title
 }
 
-import Home from "@/pages/admin"
-
 const adminRoutes: Array<RouteConfig> = [
     {
         path: "",
@@ -74,6 +72,7 @@ const adminRoutes: Array<RouteConfig> = [
                         name: "nested-1-1-1",
                         meta: { title: "嵌套路由1-1-1" },
                         search: true,
+                        cache: true,
                         component: lazy(() => import("@/pages/admin/nested-1-1-1")),
                     },
                 ],

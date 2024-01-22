@@ -1,5 +1,5 @@
 import { Dispatch, SetStateAction } from "react"
-import useStorageState from "@/hooks/useStorageState.ts"
+import useStorageState from "@/hooks/useStorageState"
 
 interface Options<T> {
     serializer?: (value: T) => string

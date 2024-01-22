@@ -1,13 +1,13 @@
+import { useEffect, useRef } from "react"
 import { Button, Card, Input, Space } from "antd"
 import { usePageContext } from "@/providers/PageManageProvider"
-import { useEffect } from "react"
-import { decrement, increment } from "@/features/counter/counterSlice.ts"
-import { useAppDispatch, useAppSelector } from "@/hooks"
+import Counter from "@/modules/Counter"
+import { CheckKeepAlive } from "@/components/CheckKeepAlive"
 
 function NoCache() {
     const { closeCurrent } = usePageContext()
-    const count = useAppSelector(state => state.counter.value)
-    const dispatch = useAppDispatch()
+    const domRef = useRef<HTMLDivElement>(null)
+
     useEffect(() => {
         console.log("NoCache mount")
         return () => {
@@ -17,28 +17,9 @@ function NoCache() {
 
     return (
         <Card className={"h-full"} title={"NoCache 无缓存"} bordered={false}>
-            <div className={"flex w-[400px] mb-[30px] items-center"}>
-                <Button type={"link"}>Redux Example</Button>
-                <Button
-                    onClick={() => {
-                        dispatch(decrement())
-                    }}
-                >
-                    minus -
-                </Button>
-                <Input value={count}></Input>
-                <Button
-                    onClick={() => {
-                        dispatch(increment())
-                    }}
-                >
-                    plus +
-                </Button>
-            </div>
-            <Input placeholder="输入一个值 然后切换tab组件会被销毁"></Input>
-
+            <Counter />
             <Space
-                className={"mt-[100px]"}
+                className={"mb-[20px]"}
                 onClick={() => {
                     closeCurrent()
                 }}
@@ -47,6 +28,13 @@ function NoCache() {
                     关闭
                 </Button>
             </Space>
+            <Input
+                style={{
+                    marginBottom: "20px",
+                }}
+                placeholder="输入一个值 然后切换tab组件会被销毁"
+            ></Input>
+            <CheckKeepAlive ref={domRef} />
         </Card>
     )
 }

@@ -1,36 +1,17 @@
 import { Button, Card, Input, Space } from "antd"
-import { useOnActive, useOnActiveByRef } from "keepalive-for-react"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef } from "react"
 import { usePageContext } from "@/providers/PageManageProvider"
-import useKeepAliveKey from "@/hooks/useKeepAliveKey.ts"
-import { useThemeContext } from "@/providers/ThemeProvider"
-import { useAppDispatch, useAppSelector } from "@/hooks"
-import { decrement, increment } from "@/features/counter/counterSlice"
+import useKeepAliveKey from "@/hooks/useKeepAliveKey"
+
 import useMemoKeepAliveScroll from "@/hooks/useMemoKeepAliveScroll"
+import Counter from "@/modules/Counter"
+import { CheckKeepAlive } from "@/components/CheckKeepAlive"
 
 function Home() {
-    const [active, setActive] = useState(false)
-    const count = useAppSelector(state => state.counter.value)
-    const dispatch = useAppDispatch()
-    const { toggleTheme } = useThemeContext()
-    const homeKey = useKeepAliveKey()
-
     const domRef = useRef<HTMLDivElement>(null)
-
     useMemoKeepAliveScroll(domRef)
 
-    useOnActiveByRef(
-        domRef,
-        () => {
-            console.log("Home onActive")
-            setActive(true)
-            return () => {
-                console.log("Home onInactive")
-            }
-        },
-        false,
-    )
-
+    const homeKey = useKeepAliveKey()
     useEffect(() => {
         console.log("HomeKey ------->", homeKey)
     }, [])
@@ -39,33 +20,8 @@ function Home() {
     return (
         <Card title={"首页 (带缓存)"} ref={domRef}>
             <div className={"w-full h-full flex-col flex justify-center"}>
-                <div className={"flex w-[400px] mb-[30px] items-center"}>
-                    <Button type={"link"}>Redux Example</Button>
-                    <Button
-                        onClick={() => {
-                            dispatch(decrement())
-                        }}
-                    >
-                        minus -
-                    </Button>
-                    <Input value={count}></Input>
-                    <Button
-                        onClick={() => {
-                            dispatch(increment())
-                        }}
-                    >
-                        plus +
-                    </Button>
-                </div>
+                <Counter />
                 <Space className={"mb-[20px]"}>
-                    <Button
-                        type={"primary"}
-                        onClick={() => {
-                            toggleTheme()
-                        }}
-                    >
-                        切换主题
-                    </Button>
                     <Button
                         danger
                         type={"primary"}
@@ -105,17 +61,7 @@ function Home() {
                     }}
                     placeholder="输入一个值 然后切换tab组件不会被销毁"
                 ></Input>
-                <div
-                    className={"bg-amber-300 p-[20px] flex-col flex justify-center items-center w-full h-[400px]"}
-                    style={{
-                        backgroundColor: "#ffd81c",
-                    }}
-                >
-                    <div className={"font-extrabold text-[40px]"}>React KeepAlive💗</div>
-                    <p className={"text-2xl"}>
-                        {active ? <span className={"text-red-400 font-extrabold"}>{"active 💡"}</span> : "inactive"}
-                    </p>
-                </div>
+                <CheckKeepAlive ref={domRef} />
             </div>
         </Card>
     )
